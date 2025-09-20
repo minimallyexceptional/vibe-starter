@@ -36,9 +36,16 @@ export function LoginRoute() {
 
       setErrorMessage(null)
 
+      const email = value.email.trim()
+
+      if (!email) {
+        setErrorMessage('Enter a valid email before continuing.')
+        return
+      }
+
       try {
         const result = await signIn.create({
-          identifier: value.email,
+          identifier: email,
           password: value.password,
         })
 
@@ -117,7 +124,12 @@ export function LoginRoute() {
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="login-password">Password</Label>
-                      <Button variant="link" size="sm" className="h-auto px-0 font-normal" type="button">
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto px-0 font-normal"
+                        type="button"
+                      >
                         Forgot password?
                       </Button>
                     </div>
