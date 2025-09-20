@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useForm, useStore } from '@tanstack/react-form'
 import { ClerkLoaded, ClerkLoading, useSignUp } from '@/lib/clerk'
 import { AlertCircle, CheckCircle2, MailCheck, UserPlus } from 'lucide-react'
 
@@ -27,40 +28,69 @@ const onboardingHighlights = [
 export function SignUpRoute() {
   const { isLoaded, signUp, setActive } = useSignUp()
   const navigate = useNavigate()
-  const [fullName, setFullName] = React.useState('')
-  const [email, setEmail] = React.useState('')
-  const [password, setPassword] = React.useState('')
-  const [confirmPassword, setConfirmPassword] = React.useState('')
-  const [verificationCode, setVerificationCode] = React.useState('')
   const [pendingVerification, setPendingVerification] = React.useState(false)
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [infoMessage, setInfoMessage] = React.useState<string | null>(null)
 
-  const handleSignUp = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-
+  const verificationForm = useForm({
+    defaultValues: {
+      code: '',
+    },
+    onSubmit: async ({ value }) => {
       if (!isLoaded || !signUp) {
         return
       }
 
-      if (password !== confirmPassword) {
+      setErrorMessage(null)
+
+      try {
+        const result = await signUp.attemptEmailAddressVerification({ code: value.code })
+
+        if (result.status === 'complete') {
+          await setActive({ session: result.createdSessionId })
+          await navigate({ to: '/' })
+          return
+        }
+
+        setErrorMessage("We couldn't verify that code. Please try again.")
+      } catch (error) {
+        setErrorMessage(
+          getClerkErrorMessage(error) ?? 'Something went wrong while verifying the code. Please try again.',
+        )
+      }
+    },
+  })
+  const verificationIsSubmitting = useStore(verificationForm.store, (state) => state.isSubmitting)
+  const verificationCode = useStore(verificationForm.store, (state) => state.values.code)
+
+  const signUpForm = useForm({
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+    onSubmit: async ({ value }) => {
+      if (!isLoaded || !signUp) {
+        return
+      }
+
+      setErrorMessage(null)
+      setInfoMessage(null)
+
+      if (value.password !== value.confirmPassword) {
         setErrorMessage('Passwords must match before continuing.')
         return
       }
 
-      setIsSubmitting(true)
-      setErrorMessage(null)
-
-      const trimmedName = fullName.trim()
+      const trimmedName = value.fullName.trim()
       const [firstName, ...rest] = trimmedName.length ? trimmedName.split(/\s+/) : ['']
       const lastName = rest.length ? rest.join(' ') : undefined
 
       try {
         const result = await signUp.create({
-          emailAddress: email,
-          password,
+          emailAddress: value.email,
+          password: value.password,
           firstName: firstName || undefined,
           lastName,
         })
@@ -72,50 +102,19 @@ export function SignUpRoute() {
         }
 
         await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
+        verificationForm.reset()
         setPendingVerification(true)
-        setInfoMessage(`We sent a verification code to ${email}. Enter it below to activate your account.`)
+        setInfoMessage(
+          `We sent a verification code to ${value.email}. Enter it below to activate your account.`,
+        )
       } catch (error) {
         setErrorMessage(
           getClerkErrorMessage(error) ?? 'Something went wrong while creating your account. Please try again.',
         )
-      } finally {
-        setIsSubmitting(false)
       }
     },
-    [confirmPassword, email, fullName, isLoaded, navigate, password, setActive, signUp],
-  )
-
-  const handleVerification = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-
-      if (!isLoaded || !signUp) {
-        return
-      }
-
-      setIsSubmitting(true)
-      setErrorMessage(null)
-
-      try {
-        const result = await signUp.attemptEmailAddressVerification({ code: verificationCode })
-
-        if (result.status === 'complete') {
-          await setActive({ session: result.createdSessionId })
-          await navigate({ to: '/' })
-          return
-        }
-
-        setErrorMessage('We couldn\'t verify that code. Please try again.')
-      } catch (error) {
-        setErrorMessage(
-          getClerkErrorMessage(error) ?? 'Something went wrong while verifying the code. Please try again.',
-        )
-      } finally {
-        setIsSubmitting(false)
-      }
-    },
-    [isLoaded, navigate, setActive, signUp, verificationCode],
-  )
+  })
+  const signUpIsSubmitting = useStore(signUpForm.store, (state) => state.isSubmitting)
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[0.9fr,1.1fr]">
@@ -168,7 +167,13 @@ export function SignUpRoute() {
           </ClerkLoading>
           <ClerkLoaded>
             {pendingVerification ? (
-              <form className="space-y-5" onSubmit={handleVerification}>
+              <form
+                className="space-y-5"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void verificationForm.handleSubmit()
+                }}
+              >
                 <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-4 text-sm text-primary">
                   <div className="flex items-start gap-3">
                     <span className="rounded-full bg-primary/10 p-1">
@@ -177,19 +182,25 @@ export function SignUpRoute() {
                     <p>{infoMessage}</p>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="signup-verification">Verification code</Label>
-                  <Input
-                    id="signup-verification"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    placeholder="123456"
-                    value={verificationCode}
-                    onChange={(event) => setVerificationCode(event.target.value)}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
+                <verificationForm.Field name="code">
+                  {(field) => (
+                    <div className="grid gap-2">
+                      <Label htmlFor="signup-verification">Verification code</Label>
+                      <Input
+                        id="signup-verification"
+                        name={field.name}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        placeholder="123456"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={verificationIsSubmitting}
+                        required
+                      />
+                    </div>
+                  )}
+                </verificationForm.Field>
                 {errorMessage ? (
                   <div
                     className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
@@ -199,63 +210,97 @@ export function SignUpRoute() {
                     <p>{errorMessage}</p>
                   </div>
                 ) : null}
-                <Button type="submit" className="w-full" disabled={isSubmitting || !verificationCode}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={verificationIsSubmitting || !verificationCode}
+                >
                   <UserPlus className="mr-2 h-4 w-4" />
-                  {isSubmitting ? 'Verifying…' : 'Verify email'}
+                  {verificationIsSubmitting ? 'Verifying…' : 'Verify email'}
                 </Button>
               </form>
             ) : (
-              <form className="space-y-5" onSubmit={handleSignUp}>
-                <div className="grid gap-2">
-                  <Label htmlFor="signup-name">Full name</Label>
-                  <Input
-                    id="signup-name"
-                    autoComplete="name"
-                    placeholder="Ada Lovelace"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="signup-email">Work email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="signup-confirm-password">Confirm password</Label>
-                  <Input
-                    id="signup-confirm-password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    disabled={isSubmitting}
-                    required
-                  />
-                </div>
+              <form
+                className="space-y-5"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void signUpForm.handleSubmit()
+                }}
+              >
+                <signUpForm.Field name="fullName">
+                  {(field) => (
+                    <div className="grid gap-2">
+                      <Label htmlFor="signup-name">Full name</Label>
+                      <Input
+                        id="signup-name"
+                        name={field.name}
+                        autoComplete="name"
+                        placeholder="Ada Lovelace"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={signUpIsSubmitting}
+                        required
+                      />
+                    </div>
+                  )}
+                </signUpForm.Field>
+                <signUpForm.Field name="email">
+                  {(field) => (
+                    <div className="grid gap-2">
+                      <Label htmlFor="signup-email">Work email</Label>
+                      <Input
+                        id="signup-email"
+                        name={field.name}
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={signUpIsSubmitting}
+                        required
+                      />
+                    </div>
+                  )}
+                </signUpForm.Field>
+                <signUpForm.Field name="password">
+                  {(field) => (
+                    <div className="grid gap-2">
+                      <Label htmlFor="signup-password">Password</Label>
+                      <Input
+                        id="signup-password"
+                        name={field.name}
+                        type="password"
+                        autoComplete="new-password"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={signUpIsSubmitting}
+                        required
+                      />
+                    </div>
+                  )}
+                </signUpForm.Field>
+                <signUpForm.Field name="confirmPassword">
+                  {(field) => (
+                    <div className="grid gap-2">
+                      <Label htmlFor="signup-confirm-password">Confirm password</Label>
+                      <Input
+                        id="signup-confirm-password"
+                        name={field.name}
+                        type="password"
+                        autoComplete="new-password"
+                        value={field.state.value}
+                        onBlur={field.handleBlur}
+                        onChange={(event) => field.handleChange(event.target.value)}
+                        disabled={signUpIsSubmitting}
+                        required
+                      />
+                    </div>
+                  )}
+                </signUpForm.Field>
                 {errorMessage ? (
                   <div
                     className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
@@ -265,9 +310,9 @@ export function SignUpRoute() {
                     <p>{errorMessage}</p>
                   </div>
                 ) : null}
-                <Button type="submit" className="w-full" disabled={isSubmitting || !isLoaded}>
+                <Button type="submit" className="w-full" disabled={signUpIsSubmitting || !isLoaded}>
                   <UserPlus className="mr-2 h-4 w-4" />
-                  {isSubmitting ? 'Creating account…' : 'Create account'}
+                  {signUpIsSubmitting ? 'Creating account…' : 'Create account'}
                 </Button>
               </form>
             )}
