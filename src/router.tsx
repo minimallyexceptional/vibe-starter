@@ -18,6 +18,7 @@ import { ModeToggle } from '@/components/mode-toggle'
 
 import { HomeRoute } from './routes/index'
 import { LoginRoute } from './routes/login'
+import { PricingRoute } from './routes/pricing'
 import { SignUpRoute } from './routes/sign-up'
 
 const rootRoute = new RootRoute({
@@ -42,19 +43,30 @@ const rootRoute = new RootRoute({
                 >
                   Overview
                 </Link>
+                <Link
+                  to="/pricing"
+                  className="transition hover:text-foreground"
+                  activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                >
+                  Pricing
+                </Link>
                 <SignedOut>
                   <>
                     <Link
                       to="/login"
                       className="transition hover:text-foreground"
-                      activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                      activeProps={{
+                        className: 'text-foreground transition hover:text-foreground',
+                      }}
                     >
                       Log in
                     </Link>
                     <Link
                       to="/sign-up"
                       className="transition hover:text-foreground"
-                      activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                      activeProps={{
+                        className: 'text-foreground transition hover:text-foreground',
+                      }}
                     >
                       Sign up
                     </Link>
@@ -105,7 +117,10 @@ const rootRoute = new RootRoute({
                 </Button>
               </SignedOut>
               <SignedIn>
-                <UserButton afterSignOutUrl="/" appearance={{ elements: { userButtonAvatarBox: 'h-8 w-8' } }} />
+                <UserButton
+                  afterSignOutUrl="/"
+                  appearance={{ elements: { userButtonAvatarBox: 'h-8 w-8' } }}
+                />
               </SignedIn>
               <ModeToggle />
             </div>
@@ -154,7 +169,13 @@ const signUpRoute = new Route({
   component: SignUpRoute,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, signUpRoute])
+const pricingRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: '/pricing',
+  component: PricingRoute,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, pricingRoute, loginRoute, signUpRoute])
 
 const router = createRouter({ routeTree })
 
