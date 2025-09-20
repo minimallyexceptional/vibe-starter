@@ -19,6 +19,7 @@ import { AccountMenu } from '@/components/account-menu'
 
 import { HomeRoute } from './routes/index'
 import { LoginRoute } from './routes/login'
+import { PricingRoute } from './routes/pricing'
 import { SignUpRoute } from './routes/sign-up'
 
 const rootRoute = new RootRoute({
@@ -42,6 +43,13 @@ const rootRoute = new RootRoute({
                   activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
                 >
                   Overview
+                </Link>
+                <Link
+                  to="/pricing"
+                  className="transition hover:text-foreground"
+                  activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                >
+                  Pricing
                 </Link>
                 <SignedOut>
                   <>
@@ -159,7 +167,13 @@ const signUpRoute = new Route({
   component: SignUpRoute,
 })
 
-const routeTree = rootRoute.addChildren([indexRoute, loginRoute, signUpRoute])
+const pricingRoute = new Route({
+  getParentRoute: () => rootRoute,
+  path: '/pricing',
+  component: PricingRoute,
+})
+
+const routeTree = rootRoute.addChildren([indexRoute, pricingRoute, loginRoute, signUpRoute])
 
 const router = createRouter({ routeTree })
 

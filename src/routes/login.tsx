@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
+import { useForm, useStore } from '@tanstack/react-form'
 import { ClerkLoaded, ClerkLoading, useSignIn } from '@/lib/clerk'
 import { AlertCircle, LogIn, ShieldCheck } from 'lucide-react'
 
@@ -21,26 +22,24 @@ import { getClerkErrorMessage } from '@/lib/clerk'
 export function LoginRoute() {
   const { isLoaded, signIn, setActive } = useSignIn()
   const navigate = useNavigate()
-  const [email, setEmail] = React.useState('')
-  const [password, setPassword] = React.useState('')
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
 
-  const handleSubmit = React.useCallback(
-    async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-
+  const loginForm = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    onSubmit: async ({ value }) => {
       if (!isLoaded || !signIn) {
         return
       }
 
-      setIsSubmitting(true)
       setErrorMessage(null)
 
       try {
         const result = await signIn.create({
-          identifier: email,
-          password,
+          identifier: value.email,
+          password: value.password,
         })
 
         if (result.status === 'complete') {
@@ -49,17 +48,18 @@ export function LoginRoute() {
           return
         }
 
-        setErrorMessage('Additional steps are required to finish signing in. Please continue in the Clerk modal.')
+        setErrorMessage(
+          'Additional steps are required to finish signing in. Please continue in the Clerk modal.',
+        )
       } catch (error) {
         setErrorMessage(
           getClerkErrorMessage(error) ?? 'Something went wrong while signing in. Please try again.',
         )
-      } finally {
-        setIsSubmitting(false)
       }
     },
-    [email, isLoaded, navigate, password, setActive, signIn],
-  )
+  })
+
+  const isSubmitting = useStore(loginForm.store, (state) => state.isSubmitting)
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[1.05fr,0.95fr]">
@@ -85,38 +85,61 @@ export function LoginRoute() {
             </div>
           </ClerkLoading>
           <ClerkLoaded>
-            <form className="space-y-5" onSubmit={handleSubmit}>
-              <div className="grid gap-2">
-                <Label htmlFor="login-email">Email address</Label>
-                <Input
-                  id="login-email"
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="login-password">Password</Label>
-                  <Button variant="link" size="sm" className="h-auto px-0 font-normal" type="button">
-                    Forgot password?
-                  </Button>
-                </div>
-                <Input
-                  id="login-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
+            <form
+              className="space-y-5"
+              onSubmit={(event) => {
+                event.preventDefault()
+                void loginForm.handleSubmit()
+              }}
+            >
+              <loginForm.Field name="email">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <Label htmlFor="login-email">Email address</Label>
+                    <Input
+                      id="login-email"
+                      name={field.name}
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      placeholder="you@example.com"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+                )}
+              </loginForm.Field>
+              <loginForm.Field name="password">
+                {(field) => (
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="login-password">Password</Label>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto px-0 font-normal"
+                        type="button"
+                      >
+                        Forgot password?
+                      </Button>
+                    </div>
+                    <Input
+                      id="login-password"
+                      name={field.name}
+                      type="password"
+                      autoComplete="current-password"
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
+                )}
+              </loginForm.Field>
               {errorMessage ? (
                 <div
                   className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
