@@ -43,8 +43,15 @@ export function SignUpRoute() {
 
       setErrorMessage(null)
 
+      const code = value.code.trim()
+
+      if (!code) {
+        setErrorMessage('Enter the verification code sent to your email before continuing.')
+        return
+      }
+
       try {
-        const result = await signUp.attemptEmailAddressVerification({ code: value.code })
+        const result = await signUp.attemptEmailAddressVerification({ code })
 
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId })
@@ -55,13 +62,15 @@ export function SignUpRoute() {
         setErrorMessage("We couldn't verify that code. Please try again.")
       } catch (error) {
         setErrorMessage(
-          getClerkErrorMessage(error) ?? 'Something went wrong while verifying the code. Please try again.',
+          getClerkErrorMessage(error) ??
+            'Something went wrong while verifying the code. Please try again.',
         )
       }
     },
   })
   const verificationIsSubmitting = useStore(verificationForm.store, (state) => state.isSubmitting)
   const verificationCode = useStore(verificationForm.store, (state) => state.values.code)
+  const normalizedVerificationCode = verificationCode.trim()
 
   const signUpForm = useForm({
     defaultValues: {
@@ -78,6 +87,13 @@ export function SignUpRoute() {
       setErrorMessage(null)
       setInfoMessage(null)
 
+      const email = value.email.trim()
+
+      if (!email) {
+        setErrorMessage('Enter a valid email before continuing.')
+        return
+      }
+
       if (value.password !== value.confirmPassword) {
         setErrorMessage('Passwords must match before continuing.')
         return
@@ -89,7 +105,7 @@ export function SignUpRoute() {
 
       try {
         const result = await signUp.create({
-          emailAddress: value.email,
+          emailAddress: email,
           password: value.password,
           firstName: firstName || undefined,
           lastName,
@@ -105,11 +121,12 @@ export function SignUpRoute() {
         verificationForm.reset()
         setPendingVerification(true)
         setInfoMessage(
-          `We sent a verification code to ${value.email}. Enter it below to activate your account.`,
+          `We sent a verification code to ${email}. Enter it below to activate your account.`,
         )
       } catch (error) {
         setErrorMessage(
-          getClerkErrorMessage(error) ?? 'Something went wrong while creating your account. Please try again.',
+          getClerkErrorMessage(error) ??
+            'Something went wrong while creating your account. Please try again.',
         )
       }
     },
@@ -213,7 +230,7 @@ export function SignUpRoute() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={verificationIsSubmitting || !verificationCode}
+                  disabled={verificationIsSubmitting || !normalizedVerificationCode}
                 >
                   <UserPlus className="mr-2 h-4 w-4" />
                   {verificationIsSubmitting ? 'Verifying…' : 'Verify email'}
