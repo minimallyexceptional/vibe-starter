@@ -9,7 +9,7 @@ import {
 } from '@tanstack/react-router'
 import { SignedIn, SignedOut, UserButton } from '@/lib/clerk'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import { ArrowUpRight, Github, Sparkles } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -39,14 +39,20 @@ const rootRoute = new RootRoute({
                   to="/"
                   className="transition hover:text-foreground"
                   activeOptions={{ exact: true }}
-                  activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                  activeProps={{
+                    className: 'text-foreground transition hover:text-foreground',
+                    'aria-current': 'page',
+                  }}
                 >
                   Overview
                 </Link>
                 <Link
                   to="/pricing"
                   className="transition hover:text-foreground"
-                  activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                  activeProps={{
+                    className: 'text-foreground transition hover:text-foreground',
+                    'aria-current': 'page',
+                  }}
                 >
                   Pricing
                 </Link>
@@ -57,6 +63,7 @@ const rootRoute = new RootRoute({
                       className="transition hover:text-foreground"
                       activeProps={{
                         className: 'text-foreground transition hover:text-foreground',
+                        'aria-current': 'page',
                       }}
                     >
                       Log in
@@ -66,6 +73,7 @@ const rootRoute = new RootRoute({
                       className="transition hover:text-foreground"
                       activeProps={{
                         className: 'text-foreground transition hover:text-foreground',
+                        'aria-current': 'page',
                       }}
                     >
                       Sign up
@@ -78,39 +86,6 @@ const rootRoute = new RootRoute({
               <Badge variant="secondary" className="hidden sm:inline-flex">
                 React · Vite
               </Badge>
-              <Button variant="ghost" size="sm" asChild>
-                <a
-                  href="https://tanstack.com/router/latest"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1"
-                >
-                  Router Docs
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </a>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <a
-                  href="https://tanstack.com/query/latest"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1"
-                >
-                  Query Docs
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </a>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href="https://github.com/TanStack"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1"
-                >
-                  <Github className="h-3.5 w-3.5" />
-                  GitHub
-                </a>
-              </Button>
               <SignedOut>
                 <Button className="hidden sm:inline-flex" size="sm" asChild>
                   <Link to="/sign-up">Get started</Link>
