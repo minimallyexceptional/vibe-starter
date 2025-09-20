@@ -6,8 +6,10 @@ import {
   SignedIn as RealSignedIn,
   SignedOut as RealSignedOut,
   UserButton as RealUserButton,
+  useClerk as realUseClerk,
   useSignIn as realUseSignIn,
   useSignUp as realUseSignUp,
+  useUser as realUseUser,
 } from '@clerk/clerk-react'
 
 type ChildrenProps = { children?: React.ReactNode }
@@ -21,6 +23,8 @@ export const clerkMissingKeyMessage =
 
 type SignInHookReturn = ReturnType<typeof realUseSignIn>
 type SignUpHookReturn = ReturnType<typeof realUseSignUp>
+type UseUserReturn = ReturnType<typeof realUseUser>
+type UseClerkReturn = ReturnType<typeof realUseClerk>
 
 const mockSignInValue = {
   isLoaded: true,
@@ -47,6 +51,26 @@ const mockSignUpValue = {
   },
   setActive: async () => {},
 } as unknown as SignUpHookReturn
+
+const mockUseUserValue = {
+  isLoaded: true,
+  isSignedIn: true,
+  user: {
+    id: 'mock_user_id',
+    firstName: 'Ada',
+    lastName: 'Lovelace',
+    fullName: 'Ada Lovelace',
+    imageUrl: undefined,
+    primaryEmailAddress: { emailAddress: 'ada@example.com' },
+    emailAddresses: [{ emailAddress: 'ada@example.com' }],
+  },
+} as unknown as UseUserReturn
+
+const mockClerkValue = {
+  async signOut() {
+    console.warn('signOut was called without an active Clerk instance. No action was taken.')
+  },
+} as unknown as UseClerkReturn
 
 function MockClerkProvider(props: ChildrenProps) {
   return <>{props.children}</>
@@ -80,10 +104,21 @@ function useMockSignUp(): SignUpHookReturn {
   return React.useMemo(() => mockSignUpValue, [])
 }
 
+function useMockUser(): UseUserReturn {
+  return React.useMemo(() => mockUseUserValue, [])
+}
+
+function useMockClerk(): UseClerkReturn {
+  return React.useMemo(() => mockClerkValue, [])
+}
+
 export function AppClerkProvider({ children }: ChildrenProps) {
   if (isClerkConfigured && publishableKey) {
     return (
-      <RealClerkProvider publishableKey={publishableKey} appearance={{ variables: { colorPrimary: '#2563eb' } }}>
+      <RealClerkProvider
+        publishableKey={publishableKey}
+        appearance={{ variables: { colorPrimary: '#2563eb' } }}
+      >
         {children}
       </RealClerkProvider>
     )
@@ -109,11 +144,15 @@ export const SignedOut = isClerkConfigured ? RealSignedOut : MockSignedOut
 export const UserButton = isClerkConfigured ? RealUserButton : MockUserButton
 export const useSignIn = isClerkConfigured ? realUseSignIn : useMockSignIn
 export const useSignUp = isClerkConfigured ? realUseSignUp : useMockSignUp
+export const useUser = isClerkConfigured ? realUseUser : useMockUser
+export const useClerk = isClerkConfigured ? realUseClerk : useMockClerk
 
 export function getClerkErrorMessage(error: unknown): string | null {
   if (typeof error === 'object' && error !== null && 'errors' in error) {
     const apiError = error as { errors?: Array<{ message?: string }> }
-    const messages = apiError.errors?.map((item) => item?.message).filter(Boolean) as string[] | undefined
+    const messages = apiError.errors?.map((item) => item?.message).filter(Boolean) as
+      | string[]
+      | undefined
 
     if (messages && messages.length > 0) {
       return messages.join(' ')

@@ -7,7 +7,7 @@ import {
   Route,
   createRouter,
 } from '@tanstack/react-router'
-import { SignedIn, SignedOut, UserButton } from '@/lib/clerk'
+import { SignedIn, SignedOut } from '@/lib/clerk'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { ArrowUpRight, Github, Sparkles } from 'lucide-react'
 
@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 import { ModeToggle } from '@/components/mode-toggle'
+import { AccountMenu } from '@/components/account-menu'
 
 import { HomeRoute } from './routes/index'
 import { LoginRoute } from './routes/login'
@@ -47,14 +48,18 @@ const rootRoute = new RootRoute({
                     <Link
                       to="/login"
                       className="transition hover:text-foreground"
-                      activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                      activeProps={{
+                        className: 'text-foreground transition hover:text-foreground',
+                      }}
                     >
                       Log in
                     </Link>
                     <Link
                       to="/sign-up"
                       className="transition hover:text-foreground"
-                      activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                      activeProps={{
+                        className: 'text-foreground transition hover:text-foreground',
+                      }}
                     >
                       Sign up
                     </Link>
@@ -105,7 +110,7 @@ const rootRoute = new RootRoute({
                 </Button>
               </SignedOut>
               <SignedIn>
-                <UserButton afterSignOutUrl="/" appearance={{ elements: { userButtonAvatarBox: 'h-8 w-8' } }} />
+                <AccountMenu />
               </SignedIn>
               <ModeToggle />
             </div>
