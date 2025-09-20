@@ -11,6 +11,7 @@
     "ladle:build": "ladle build",
     "ladle:preview": "ladle preview",
     "lint": "eslint . --ext .ts,.tsx --max-warnings=0",
+    "typecheck": "tsc --noEmit",
     "lint:fix": "npm run lint -- --fix",
     "lint:staged": "lint-staged",
     "format": "prettier --write .",
