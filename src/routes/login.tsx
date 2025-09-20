@@ -51,7 +51,7 @@ export function LoginRoute() {
 
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId })
-          await navigate({ to: '/' })
+          await navigate({ to: '/dashboard' })
           return
         }
 

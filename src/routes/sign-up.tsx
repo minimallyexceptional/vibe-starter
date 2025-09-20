@@ -55,7 +55,7 @@ export function SignUpRoute() {
 
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId })
-          await navigate({ to: '/' })
+          await navigate({ to: '/dashboard' })
           return
         }
 
@@ -113,7 +113,7 @@ export function SignUpRoute() {
 
         if (result.status === 'complete') {
           await setActive({ session: result.createdSessionId })
-          await navigate({ to: '/' })
+          await navigate({ to: '/dashboard' })
           return
         }
 
