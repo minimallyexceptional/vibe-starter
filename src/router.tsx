@@ -7,6 +7,7 @@ import {
   Route,
   createRouter,
 } from '@tanstack/react-router'
+import { SignedIn, SignedOut, UserButton } from '@/lib/clerk'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 import { ArrowUpRight, Github, Sparkles } from 'lucide-react'
 
@@ -41,20 +42,24 @@ const rootRoute = new RootRoute({
                 >
                   Overview
                 </Link>
-                <Link
-                  to="/login"
-                  className="transition hover:text-foreground"
-                  activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
-                >
-                  Log in
-                </Link>
-                <Link
-                  to="/sign-up"
-                  className="transition hover:text-foreground"
-                  activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
-                >
-                  Sign up
-                </Link>
+                <SignedOut>
+                  <>
+                    <Link
+                      to="/login"
+                      className="transition hover:text-foreground"
+                      activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                    >
+                      Log in
+                    </Link>
+                    <Link
+                      to="/sign-up"
+                      className="transition hover:text-foreground"
+                      activeProps={{ className: 'text-foreground transition hover:text-foreground' }}
+                    >
+                      Sign up
+                    </Link>
+                  </>
+                </SignedOut>
               </nav>
             </div>
             <div className="flex items-center gap-2">
@@ -94,6 +99,14 @@ const rootRoute = new RootRoute({
                   GitHub
                 </a>
               </Button>
+              <SignedOut>
+                <Button className="hidden sm:inline-flex" size="sm" asChild>
+                  <Link to="/sign-up">Get started</Link>
+                </Button>
+              </SignedOut>
+              <SignedIn>
+                <UserButton afterSignOutUrl="/" appearance={{ elements: { userButtonAvatarBox: 'h-8 w-8' } }} />
+              </SignedIn>
               <ModeToggle />
             </div>
           </div>

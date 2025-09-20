@@ -1,6 +1,7 @@
 import React from 'react'
-import { Link } from '@tanstack/react-router'
-import { LogIn, ShieldCheck } from 'lucide-react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import { ClerkLoaded, ClerkLoading, useSignIn } from '@/lib/clerk'
+import { AlertCircle, LogIn, ShieldCheck } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -14,11 +15,51 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
+import { getClerkErrorMessage } from '@/lib/clerk'
 
 export function LoginRoute() {
-  const handleSubmit = React.useCallback((event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-  }, [])
+  const { isLoaded, signIn, setActive } = useSignIn()
+  const navigate = useNavigate()
+  const [email, setEmail] = React.useState('')
+  const [password, setPassword] = React.useState('')
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  const handleSubmit = React.useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+
+      if (!isLoaded || !signIn) {
+        return
+      }
+
+      setIsSubmitting(true)
+      setErrorMessage(null)
+
+      try {
+        const result = await signIn.create({
+          identifier: email,
+          password,
+        })
+
+        if (result.status === 'complete') {
+          await setActive({ session: result.createdSessionId })
+          await navigate({ to: '/' })
+          return
+        }
+
+        setErrorMessage('Additional steps are required to finish signing in. Please continue in the Clerk modal.')
+      } catch (error) {
+        setErrorMessage(
+          getClerkErrorMessage(error) ?? 'Something went wrong while signing in. Please try again.',
+        )
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [email, isLoaded, navigate, password, setActive, signIn],
+  )
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[1.05fr,0.95fr]">
@@ -34,32 +75,63 @@ export function LoginRoute() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-              <Label htmlFor="login-email">Email address</Label>
-              <Input
-                id="login-email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                placeholder="you@example.com"
-                required
-              />
+          <ClerkLoading>
+            <div className="space-y-4">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="login-password">Password</Label>
-                <Button variant="link" size="sm" className="h-auto px-0 font-normal" type="button">
-                  Forgot password?
-                </Button>
+          </ClerkLoading>
+          <ClerkLoaded>
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              <div className="grid gap-2">
+                <Label htmlFor="login-email">Email address</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  disabled={isSubmitting}
+                  required
+                />
               </div>
-              <Input id="login-password" type="password" autoComplete="current-password" required />
-            </div>
-            <Button type="submit" className="w-full">
-              <LogIn className="mr-2 h-4 w-4" />
-              Sign in
-            </Button>
-          </form>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="login-password">Password</Label>
+                  <Button variant="link" size="sm" className="h-auto px-0 font-normal" type="button">
+                    Forgot password?
+                  </Button>
+                </div>
+                <Input
+                  id="login-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  disabled={isSubmitting}
+                  required
+                />
+              </div>
+              {errorMessage ? (
+                <div
+                  className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  role="alert"
+                >
+                  <AlertCircle className="mt-0.5 h-4 w-4" />
+                  <p>{errorMessage}</p>
+                </div>
+              ) : null}
+              <Button type="submit" className="w-full" disabled={isSubmitting || !isLoaded}>
+                <LogIn className="mr-2 h-4 w-4" />
+                {isSubmitting ? 'Signing in…' : 'Sign in'}
+              </Button>
+            </form>
+          </ClerkLoaded>
         </CardContent>
         <CardFooter className="flex flex-col gap-3 text-sm text-muted-foreground">
           <div className="flex items-center gap-2 rounded-md border border-muted px-3 py-2 text-xs text-muted-foreground">
