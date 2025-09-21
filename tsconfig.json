@@ -20,6 +20,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", ".ladle", "vite.config.ts"],
+  "include": ["src", ".ladle", "vite.config.ts", "playwright"],
   "exclude": ["node_modules"]
 }
