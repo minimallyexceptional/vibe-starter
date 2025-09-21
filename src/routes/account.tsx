@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from '@tanstack/react-router'
-import { ArrowRight, Check, CheckCircle2, CreditCard, UploadCloud } from 'lucide-react'
+import { ArrowRight, Check, CheckCircle2, CreditCard, Loader2, UploadCloud } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,17 @@ import { Label } from '@/components/ui/label'
 import { pricingPlans } from '@/lib/pricing-data'
 import { useUser } from '@/lib/clerk'
 import { cn, getInitials } from '@/lib/utils'
+import { getStripe } from '@/lib/stripe'
+
+const stripePriceIdByPlan: Record<string, string | undefined> = {
+  Starter: import.meta.env.VITE_STRIPE_PRICE_ID_STARTER,
+  Growth: import.meta.env.VITE_STRIPE_PRICE_ID_GROWTH,
+  Scale: import.meta.env.VITE_STRIPE_PRICE_ID_SCALE,
+}
+
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+const stripeSuccessUrl = import.meta.env.VITE_STRIPE_SUCCESS_URL
+const stripeCancelUrl = import.meta.env.VITE_STRIPE_CANCEL_URL
 
 export function AccountManagementRoute() {
   const { user } = useUser()
@@ -42,6 +53,55 @@ export function AccountManagementRoute() {
     () => pricingPlans.find((plan) => plan.name === selectedPlan) ?? pricingPlans[0],
     [selectedPlan],
   )
+
+  const selectedPlanPriceId = stripePriceIdByPlan[activePlan.name]
+  const [isRedirecting, setIsRedirecting] = React.useState(false)
+  const [checkoutError, setCheckoutError] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    setCheckoutError(null)
+    setIsRedirecting(false)
+  }, [selectedPlanPriceId])
+
+  const handleCheckout = React.useCallback(async () => {
+    if (!selectedPlanPriceId) {
+      setCheckoutError('This plan is not available for online checkout yet.')
+      return
+    }
+
+    const stripe = await getStripe()
+
+    if (!stripe) {
+      setCheckoutError(
+        'Stripe is not fully configured. Please contact support to upgrade your plan.',
+      )
+      return
+    }
+
+    setCheckoutError(null)
+    setIsRedirecting(true)
+
+    const origin = window.location.origin
+    const successUrl = stripeSuccessUrl ?? `${origin}/account?status=subscription-success`
+    const cancelUrl = stripeCancelUrl ?? `${origin}/account?status=subscription-cancelled`
+
+    const { error } = await stripe.redirectToCheckout({
+      lineItems: [
+        {
+          price: selectedPlanPriceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      successUrl,
+      cancelUrl,
+    })
+
+    if (error) {
+      setCheckoutError(error.message ?? 'We were unable to start checkout. Please try again.')
+      setIsRedirecting(false)
+    }
+  }, [selectedPlanPriceId])
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
@@ -236,6 +296,46 @@ export function AccountManagementRoute() {
             )
           })}
         </CardContent>
+        <CardFooter className="flex flex-col gap-3 border-t border-muted/60 bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1 text-sm text-muted-foreground">
+            <p>
+              {selectedPlanPriceId
+                ? 'We partner with Stripe to securely manage your subscription billing.'
+                : activePlan.name === 'Starter'
+                  ? 'The Starter plan is free—no billing is required.'
+                  : 'Select a paid plan that supports checkout to update your subscription.'}
+            </p>
+            {checkoutError ? (
+              <p className="text-sm font-medium text-destructive">{checkoutError}</p>
+            ) : null}
+            {!stripePublishableKey && selectedPlanPriceId ? (
+              <p className="text-sm font-medium text-destructive">
+                Missing Stripe publishable key. Add it to your environment configuration to enable
+                checkout.
+              </p>
+            ) : null}
+          </div>
+          {selectedPlanPriceId ? (
+            <Button
+              className="w-full sm:w-auto"
+              disabled={isRedirecting || !stripePublishableKey}
+              onClick={handleCheckout}
+            >
+              {isRedirecting ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Redirecting to Stripe
+                </span>
+              ) : (
+                `Subscribe to ${activePlan.name}`
+              )}
+            </Button>
+          ) : (
+            <Button className="w-full sm:w-auto" variant="outline" disabled>
+              {activePlan.name === 'Starter' ? 'Starter plan is free' : 'Checkout unavailable'}
+            </Button>
+          )}
+        </CardFooter>
       </Card>
 
       <Card className="border-muted/70">
