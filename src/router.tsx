@@ -1,4 +1,3 @@
-import React from 'react'
 import { Outlet, RouterProvider, RootRoute, Route, createRouter } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 
