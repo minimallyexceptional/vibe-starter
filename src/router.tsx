@@ -25,7 +25,7 @@ const rootRoute = new RootRoute({
 
 const marketingRoute = new Route({
   getParentRoute: () => rootRoute,
-  path: '/',
+  id: 'marketing-layout',
   component: MarketingLayout,
 })
 
