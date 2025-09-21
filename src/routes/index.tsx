@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, Layers3, LayoutDashboard, LineChart, Rocket } from 'lucide-react'

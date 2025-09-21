@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link, Outlet } from '@tanstack/react-router'
 import { Sparkles } from 'lucide-react'
 
