@@ -1,6 +1,15 @@
 import React from 'react'
 import { Link, Navigate, Outlet } from '@tanstack/react-router'
-import { ChevronLeft, ChevronRight, LayoutDashboard, Menu, Sparkles } from 'lucide-react'
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsUpDown,
+  LayoutDashboard,
+  LogIn,
+  Menu,
+  Sparkles,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -11,9 +20,18 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { ModeToggle } from '@/components/mode-toggle'
-import { SignedIn, SignedOut, UserButton, isClerkConfigured } from '@/lib/clerk'
-import { cn } from '@/lib/utils'
+import { SignedIn, SignedOut, UserButton, isClerkConfigured, useUser } from '@/lib/clerk'
+import { cn, getInitials } from '@/lib/utils'
 
 const APP_NAME = 'TanStack Starter'
 
@@ -32,10 +50,127 @@ const sidebarItems = [
   },
 ] as const
 
+type SidebarAccountUser = {
+  name: string
+  email: string
+  imageUrl?: string | null
+}
+
+const placeholderAccountUser: SidebarAccountUser = {
+  name: 'Avery Parker',
+  email: 'avery.parker@example.com',
+  imageUrl: undefined,
+}
+
+function SidebarAccountMenu({
+  isCollapsed,
+  user,
+  onNavigate,
+}: {
+  isCollapsed: boolean
+  user: SidebarAccountUser
+  onNavigate?: () => void
+}) {
+  const initials = React.useMemo(() => getInitials(user.name) || 'AP', [user.name])
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          aria-label="Open account menu"
+          className={cn(
+            'flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background hover:border-muted/70 hover:bg-muted/50',
+            isCollapsed && 'justify-center px-0',
+          )}
+        >
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={user.imageUrl ?? undefined} alt={user.name} />
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className={cn('min-w-0 flex-1', isCollapsed && 'sr-only')}>
+            <p className="truncate text-sm font-semibold text-foreground">{user.name}</p>
+            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+          </div>
+          <ChevronsUpDown
+            className={cn('h-4 w-4 text-muted-foreground', isCollapsed && 'sr-only')}
+            aria-hidden="true"
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" side="top" className="w-64">
+        <DropdownMenuLabel>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">{user.name}</p>
+            <p className="text-xs text-muted-foreground">{user.email}</p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild onSelect={() => onNavigate?.()}>
+          <Link to="/dashboard/account" className="flex w-full items-center justify-between gap-2">
+            <span className="text-sm font-medium">Account management</span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Link>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function SidebarSignedOutPrompt({ isCollapsed }: { isCollapsed: boolean }) {
+  if (isCollapsed) {
+    return (
+      <Button size="icon" variant="outline" className="w-full" asChild>
+        <Link to="/login" aria-label="Sign in to access account settings">
+          <LogIn className="h-4 w-4" />
+        </Link>
+      </Button>
+    )
+  }
+
+  return (
+    <div className="space-y-3 rounded-lg border border-dashed border-muted/70 bg-background/60 p-4 text-xs text-muted-foreground">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-foreground">Sign in for account tools</p>
+        <p>Access workspace settings, billing, and notifications after authenticating.</p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" asChild>
+          <Link to="/login">Sign in</Link>
+        </Button>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/sign-up">Create account</Link>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = React.useState(false)
   const [isMobileOpen, setIsMobileOpen] = React.useState(false)
   const authEnabled = isClerkConfigured
+  const { user } = useUser()
+
+  const sidebarAccountUser = React.useMemo<SidebarAccountUser>(() => {
+    if (user) {
+      const fallbackName = [user.firstName, user.lastName].filter(Boolean).join(' ')
+      const name = user.fullName || fallbackName || placeholderAccountUser.name
+      const primaryEmail = user.primaryEmailAddress
+      const email =
+        primaryEmail && typeof primaryEmail.emailAddress === 'string'
+          ? primaryEmail.emailAddress
+          : placeholderAccountUser.email
+
+      return {
+        name,
+        email,
+        imageUrl: user.imageUrl ?? placeholderAccountUser.imageUrl,
+      }
+    }
+
+    return placeholderAccountUser
+  }, [user])
 
   const baseNavItemClass = React.useMemo(
     () =>
@@ -117,13 +252,27 @@ export function DashboardLayout() {
               )
             })}
           </nav>
-          <div className="border-t px-4 py-4 text-xs text-muted-foreground">
-            <p className={cn('font-medium text-foreground', isCollapsed && 'sr-only')}>
-              Signed in tools
-            </p>
-            <p className={cn(isCollapsed && 'sr-only')}>
-              Use the sidebar to switch between workspace modules.
-            </p>
+          <div className="border-t px-4 py-4">
+            {authEnabled ? (
+              <>
+                <SignedIn>
+                  <SidebarAccountMenu
+                    isCollapsed={isCollapsed}
+                    user={sidebarAccountUser}
+                    onNavigate={() => setIsMobileOpen(false)}
+                  />
+                </SignedIn>
+                <SignedOut>
+                  <SidebarSignedOutPrompt isCollapsed={isCollapsed} />
+                </SignedOut>
+              </>
+            ) : (
+              <SidebarAccountMenu
+                isCollapsed={isCollapsed}
+                user={sidebarAccountUser}
+                onNavigate={() => setIsMobileOpen(false)}
+              />
+            )}
           </div>
         </aside>
         <div className="flex flex-1 min-h-0 flex-col overflow-hidden md:pl-0">
