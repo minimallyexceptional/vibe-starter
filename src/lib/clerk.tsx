@@ -8,6 +8,7 @@ import {
   UserButton as RealUserButton,
   useSignIn as realUseSignIn,
   useSignUp as realUseSignUp,
+  useUser as realUseUser,
 } from '@clerk/clerk-react'
 
 type ChildrenProps = { children?: React.ReactNode }
@@ -21,6 +22,7 @@ export const clerkMissingKeyMessage =
 
 type SignInHookReturn = ReturnType<typeof realUseSignIn>
 type SignUpHookReturn = ReturnType<typeof realUseSignUp>
+type UseUserHookReturn = ReturnType<typeof realUseUser>
 
 const mockSignInValue = {
   isLoaded: true,
@@ -47,6 +49,17 @@ const mockSignUpValue = {
   },
   setActive: async () => {},
 } as unknown as SignUpHookReturn
+
+const mockUserValue = {
+  isLoaded: true,
+  user: {
+    firstName: 'Avery',
+    lastName: 'Parker',
+    fullName: 'Avery Parker',
+    imageUrl: undefined,
+    primaryEmailAddress: { emailAddress: 'avery.parker@example.com' },
+  },
+} as unknown as UseUserHookReturn
 
 function MockClerkProvider(props: ChildrenProps) {
   return <>{props.children}</>
@@ -80,10 +93,17 @@ function useMockSignUp(): SignUpHookReturn {
   return React.useMemo(() => mockSignUpValue, [])
 }
 
+function useMockUser(): UseUserHookReturn {
+  return React.useMemo(() => mockUserValue, [])
+}
+
 export function AppClerkProvider({ children }: ChildrenProps) {
   if (isClerkConfigured && publishableKey) {
     return (
-      <RealClerkProvider publishableKey={publishableKey} appearance={{ variables: { colorPrimary: '#2563eb' } }}>
+      <RealClerkProvider
+        publishableKey={publishableKey}
+        appearance={{ variables: { colorPrimary: '#2563eb' } }}
+      >
         {children}
       </RealClerkProvider>
     )
@@ -109,11 +129,14 @@ export const SignedOut = isClerkConfigured ? RealSignedOut : MockSignedOut
 export const UserButton = isClerkConfigured ? RealUserButton : MockUserButton
 export const useSignIn = isClerkConfigured ? realUseSignIn : useMockSignIn
 export const useSignUp = isClerkConfigured ? realUseSignUp : useMockSignUp
+export const useUser = isClerkConfigured ? realUseUser : useMockUser
 
 export function getClerkErrorMessage(error: unknown): string | null {
   if (typeof error === 'object' && error !== null && 'errors' in error) {
     const apiError = error as { errors?: Array<{ message?: string }> }
-    const messages = apiError.errors?.map((item) => item?.message).filter(Boolean) as string[] | undefined
+    const messages = apiError.errors?.map((item) => item?.message).filter(Boolean) as
+      | string[]
+      | undefined
 
     if (messages && messages.length > 0) {
       return messages.join(' ')

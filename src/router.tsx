@@ -8,6 +8,7 @@ import {
   DashboardIndexRoute,
   DashboardLayout,
 } from './routes/dashboard'
+import { AccountManagementRoute } from './routes/account'
 import { MarketingLayout } from './routes/marketing-layout'
 import { HomeRoute } from './routes/index'
 import { LoginRoute } from './routes/login'
@@ -77,9 +78,20 @@ const dashboardHelloRoute = new Route({
   component: DashboardHelloRoute,
 })
 
+const dashboardAccountRoute = new Route({
+  getParentRoute: () => dashboardRoute,
+  path: 'account',
+  component: AccountManagementRoute,
+})
+
 const routeTree = rootRoute.addChildren([
   marketingRoute.addChildren([homeRoute, pricingRoute, loginRoute, signUpRoute]),
-  dashboardRoute.addChildren([dashboardIndexRoute, dashboardCounterRoute, dashboardHelloRoute]),
+  dashboardRoute.addChildren([
+    dashboardIndexRoute,
+    dashboardCounterRoute,
+    dashboardHelloRoute,
+    dashboardAccountRoute,
+  ]),
 ])
 
 const router = createRouter({ routeTree })
