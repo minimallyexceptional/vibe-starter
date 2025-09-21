@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import { configDefaults } from 'vitest/config'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
@@ -17,5 +18,6 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     passWithNoTests: true,
+    exclude: [...configDefaults.exclude, 'playwright/**'],
   },
 })
