@@ -1,6 +1,6 @@
 import React from 'react'
-import { Link, Navigate, Outlet, useRouterState } from '@tanstack/react-router'
-import { BarChart3, ChevronLeft, ChevronRight, LayoutDashboard, Menu, Sparkles } from 'lucide-react'
+import { Link, Navigate, Outlet } from '@tanstack/react-router'
+import { ChevronLeft, ChevronRight, LayoutDashboard, Menu, Sparkles } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +14,8 @@ import {
 import { ModeToggle } from '@/components/mode-toggle'
 import { SignedIn, SignedOut, UserButton, isClerkConfigured } from '@/lib/clerk'
 import { cn } from '@/lib/utils'
+
+const APP_NAME = 'TanStack Starter'
 
 const sidebarItems = [
   {
@@ -33,13 +35,7 @@ const sidebarItems = [
 export function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = React.useState(false)
   const [isMobileOpen, setIsMobileOpen] = React.useState(false)
-  const pathname = useRouterState({ select: (state) => state.location.pathname ?? '/' })
   const authEnabled = isClerkConfigured
-
-  const activeItem = React.useMemo(
-    () => sidebarItems.find((item) => pathname.startsWith(item.to)),
-    [pathname],
-  )
 
   const baseNavItemClass = React.useMemo(
     () =>
@@ -75,10 +71,12 @@ export function DashboardLayout() {
           <div className="flex h-16 items-center justify-between border-b px-4">
             <div className="flex items-center gap-2">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <BarChart3 className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
               </span>
-              <span className={cn('text-base font-semibold', isCollapsed && 'sr-only')}>
-                Control Center
+              <span
+                className={cn('text-base font-semibold text-foreground', isCollapsed && 'sr-only')}
+              >
+                {APP_NAME}
               </span>
             </div>
             <Button
@@ -140,15 +138,6 @@ export function DashboardLayout() {
               >
                 <Menu className="h-5 w-5" />
               </Button>
-              <div className="space-y-1">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">Dashboard</p>
-                <h1 className="text-lg font-semibold text-foreground">
-                  {activeItem?.label ?? 'Workspace overview'}
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  {activeItem?.description ?? 'Select a module from the sidebar to get started.'}
-                </p>
-              </div>
             </div>
             <div className="flex items-center gap-2">
               <ModeToggle />
