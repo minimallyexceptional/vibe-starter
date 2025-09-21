@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useForm, useStore } from '@tanstack/react-form'
+import { useForm, useStore, type AnyFieldApi } from '@tanstack/react-form'
 import { ClerkLoaded, ClerkLoading, useSignUp } from '@/lib/clerk'
 import { AlertCircle, CheckCircle2, MailCheck, UserPlus } from 'lucide-react'
 
@@ -25,6 +25,28 @@ const onboardingHighlights = [
   'Invite teammates and manage access with a single click',
 ]
 
+type VerificationFormValues = {
+  code: string
+}
+
+type SignUpFormValues = {
+  fullName: string
+  email: string
+  password: string
+  confirmPassword: string
+}
+
+type FormSubmitContext<TValues> = {
+  value: TValues
+} & Record<string, unknown>
+
+type TextFieldRenderProps = {
+  name: string
+  state: { value: string }
+  handleBlur: React.FocusEventHandler<HTMLInputElement>
+  handleChange: (value: string) => void
+}
+
 export function SignUpRoute() {
   const { isLoaded, signUp, setActive } = useSignUp()
   const navigate = useNavigate()
@@ -36,7 +58,7 @@ export function SignUpRoute() {
     defaultValues: {
       code: '',
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value }: FormSubmitContext<VerificationFormValues>) => {
       if (!isLoaded || !signUp) {
         return
       }
@@ -68,8 +90,14 @@ export function SignUpRoute() {
       }
     },
   })
-  const verificationIsSubmitting = useStore(verificationForm.store, (state) => state.isSubmitting)
-  const verificationCode = useStore(verificationForm.store, (state) => state.values.code)
+  const verificationIsSubmitting = useStore(
+    verificationForm.store,
+    (state: { isSubmitting: boolean }) => state.isSubmitting,
+  )
+  const verificationCode = useStore(
+    verificationForm.store,
+    (state: { values: { code: string } }) => state.values.code,
+  )
   const normalizedVerificationCode = verificationCode.trim()
 
   const signUpForm = useForm({
@@ -79,7 +107,7 @@ export function SignUpRoute() {
       password: '',
       confirmPassword: '',
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value }: FormSubmitContext<SignUpFormValues>) => {
       if (!isLoaded || !signUp) {
         return
       }
@@ -131,7 +159,10 @@ export function SignUpRoute() {
       }
     },
   })
-  const signUpIsSubmitting = useStore(signUpForm.store, (state) => state.isSubmitting)
+  const signUpIsSubmitting = useStore(
+    signUpForm.store,
+    (state: { isSubmitting: boolean }) => state.isSubmitting,
+  )
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[0.9fr,1.1fr]">
@@ -200,23 +231,27 @@ export function SignUpRoute() {
                   </div>
                 </div>
                 <verificationForm.Field name="code">
-                  {(field) => (
-                    <div className="grid gap-2">
-                      <Label htmlFor="signup-verification">Verification code</Label>
-                      <Input
-                        id="signup-verification"
-                        name={field.name}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        placeholder="123456"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                        disabled={verificationIsSubmitting}
-                        required
-                      />
-                    </div>
-                  )}
+                  {(field: AnyFieldApi) => {
+                    const fieldApi = field as TextFieldRenderProps
+
+                    return (
+                      <div className="grid gap-2">
+                        <Label htmlFor="signup-verification">Verification code</Label>
+                        <Input
+                          id="signup-verification"
+                          name={fieldApi.name}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="123456"
+                          value={fieldApi.state.value}
+                          onBlur={fieldApi.handleBlur}
+                          onChange={(event) => fieldApi.handleChange(event.target.value)}
+                          disabled={verificationIsSubmitting}
+                          required
+                        />
+                      </div>
+                    )
+                  }}
                 </verificationForm.Field>
                 {errorMessage ? (
                   <div
@@ -245,78 +280,94 @@ export function SignUpRoute() {
                 }}
               >
                 <signUpForm.Field name="fullName">
-                  {(field) => (
-                    <div className="grid gap-2">
-                      <Label htmlFor="signup-name">Full name</Label>
-                      <Input
-                        id="signup-name"
-                        name={field.name}
-                        autoComplete="name"
-                        placeholder="Ada Lovelace"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                        disabled={signUpIsSubmitting}
-                        required
-                      />
-                    </div>
-                  )}
+                  {(field: AnyFieldApi) => {
+                    const fieldApi = field as TextFieldRenderProps
+
+                    return (
+                      <div className="grid gap-2">
+                        <Label htmlFor="signup-name">Full name</Label>
+                        <Input
+                          id="signup-name"
+                          name={fieldApi.name}
+                          autoComplete="name"
+                          placeholder="Ada Lovelace"
+                          value={fieldApi.state.value}
+                          onBlur={fieldApi.handleBlur}
+                          onChange={(event) => fieldApi.handleChange(event.target.value)}
+                          disabled={signUpIsSubmitting}
+                          required
+                        />
+                      </div>
+                    )
+                  }}
                 </signUpForm.Field>
                 <signUpForm.Field name="email">
-                  {(field) => (
-                    <div className="grid gap-2">
-                      <Label htmlFor="signup-email">Work email</Label>
-                      <Input
-                        id="signup-email"
-                        name={field.name}
-                        type="email"
-                        inputMode="email"
-                        autoComplete="email"
-                        placeholder="you@example.com"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                        disabled={signUpIsSubmitting}
-                        required
-                      />
-                    </div>
-                  )}
+                  {(field: AnyFieldApi) => {
+                    const fieldApi = field as TextFieldRenderProps
+
+                    return (
+                      <div className="grid gap-2">
+                        <Label htmlFor="signup-email">Work email</Label>
+                        <Input
+                          id="signup-email"
+                          name={fieldApi.name}
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          placeholder="you@example.com"
+                          value={fieldApi.state.value}
+                          onBlur={fieldApi.handleBlur}
+                          onChange={(event) => fieldApi.handleChange(event.target.value)}
+                          disabled={signUpIsSubmitting}
+                          required
+                        />
+                      </div>
+                    )
+                  }}
                 </signUpForm.Field>
                 <signUpForm.Field name="password">
-                  {(field) => (
-                    <div className="grid gap-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input
-                        id="signup-password"
-                        name={field.name}
-                        type="password"
-                        autoComplete="new-password"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                        disabled={signUpIsSubmitting}
-                        required
-                      />
-                    </div>
-                  )}
+                  {(field: AnyFieldApi) => {
+                    const fieldApi = field as TextFieldRenderProps
+
+                    return (
+                      <div className="grid gap-2">
+                        <Label htmlFor="signup-password">Password</Label>
+                        <Input
+                          id="signup-password"
+                          name={fieldApi.name}
+                          type="password"
+                          autoComplete="new-password"
+                          value={fieldApi.state.value}
+                          onBlur={fieldApi.handleBlur}
+                          onChange={(event) => fieldApi.handleChange(event.target.value)}
+                          disabled={signUpIsSubmitting}
+                          required
+                        />
+                      </div>
+                    )
+                  }}
                 </signUpForm.Field>
                 <signUpForm.Field name="confirmPassword">
-                  {(field) => (
-                    <div className="grid gap-2">
-                      <Label htmlFor="signup-confirm-password">Confirm password</Label>
-                      <Input
-                        id="signup-confirm-password"
-                        name={field.name}
-                        type="password"
-                        autoComplete="new-password"
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChange={(event) => field.handleChange(event.target.value)}
-                        disabled={signUpIsSubmitting}
-                        required
-                      />
-                    </div>
-                  )}
+                  {(field: AnyFieldApi) => {
+                    const fieldApi = field as TextFieldRenderProps
+
+                    return (
+                      <div className="grid gap-2">
+                        <Label htmlFor="signup-confirm-password">Confirm password</Label>
+                        <Input
+                          id="signup-confirm-password"
+                          name={fieldApi.name}
+                          type="password"
+                          autoComplete="new-password"
+                          value={fieldApi.state.value}
+                          onBlur={fieldApi.handleBlur}
+                          onChange={(event) => fieldApi.handleChange(event.target.value)}
+                          disabled={signUpIsSubmitting}
+                          required
+                        />
+                      </div>
+                    )
+                  }}
                 </signUpForm.Field>
                 {errorMessage ? (
                   <div

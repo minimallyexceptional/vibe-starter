@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { useForm, useStore } from '@tanstack/react-form'
+import { useForm, useStore, type AnyFieldApi } from '@tanstack/react-form'
 import { ClerkLoaded, ClerkLoading, useSignIn } from '@/lib/clerk'
 import { AlertCircle, LogIn, ShieldCheck } from 'lucide-react'
 
@@ -19,6 +19,22 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { getClerkErrorMessage } from '@/lib/clerk'
 
+type LoginFormValues = {
+  email: string
+  password: string
+}
+
+type FormSubmitContext<TValues> = {
+  value: TValues
+} & Record<string, unknown>
+
+type TextFieldRenderProps = {
+  name: string
+  state: { value: string }
+  handleBlur: React.FocusEventHandler<HTMLInputElement>
+  handleChange: (value: string) => void
+}
+
 export function LoginRoute() {
   const { isLoaded, signIn, setActive } = useSignIn()
   const navigate = useNavigate()
@@ -29,7 +45,7 @@ export function LoginRoute() {
       email: '',
       password: '',
     },
-    onSubmit: async ({ value }) => {
+    onSubmit: async ({ value }: FormSubmitContext<LoginFormValues>) => {
       if (!isLoaded || !signIn) {
         return
       }
@@ -66,7 +82,10 @@ export function LoginRoute() {
     },
   })
 
-  const isSubmitting = useStore(loginForm.store, (state) => state.isSubmitting)
+  const isSubmitting = useStore(
+    loginForm.store,
+    (state: { isSubmitting: boolean }) => state.isSubmitting,
+  )
 
   return (
     <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[1.05fr,0.95fr]">
@@ -100,52 +119,60 @@ export function LoginRoute() {
               }}
             >
               <loginForm.Field name="email">
-                {(field) => (
-                  <div className="grid gap-2">
-                    <Label htmlFor="login-email">Email address</Label>
-                    <Input
-                      id="login-email"
-                      name={field.name}
-                      type="email"
-                      inputMode="email"
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div>
-                )}
+                {(field: AnyFieldApi) => {
+                  const fieldApi = field as TextFieldRenderProps
+
+                  return (
+                    <div className="grid gap-2">
+                      <Label htmlFor="login-email">Email address</Label>
+                      <Input
+                        id="login-email"
+                        name={fieldApi.name}
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        value={fieldApi.state.value}
+                        onBlur={fieldApi.handleBlur}
+                        onChange={(event) => fieldApi.handleChange(event.target.value)}
+                        disabled={isSubmitting}
+                        required
+                      />
+                    </div>
+                  )
+                }}
               </loginForm.Field>
               <loginForm.Field name="password">
-                {(field) => (
-                  <div className="grid gap-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="login-password">Password</Label>
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto px-0 font-normal"
-                        type="button"
-                      >
-                        Forgot password?
-                      </Button>
+                {(field: AnyFieldApi) => {
+                  const fieldApi = field as TextFieldRenderProps
+
+                  return (
+                    <div className="grid gap-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="login-password">Password</Label>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto px-0 font-normal"
+                          type="button"
+                        >
+                          Forgot password?
+                        </Button>
+                      </div>
+                      <Input
+                        id="login-password"
+                        name={fieldApi.name}
+                        type="password"
+                        autoComplete="current-password"
+                        value={fieldApi.state.value}
+                        onBlur={fieldApi.handleBlur}
+                        onChange={(event) => fieldApi.handleChange(event.target.value)}
+                        disabled={isSubmitting}
+                        required
+                      />
                     </div>
-                    <Input
-                      id="login-password"
-                      name={field.name}
-                      type="password"
-                      autoComplete="current-password"
-                      value={field.state.value}
-                      onBlur={field.handleBlur}
-                      onChange={(event) => field.handleChange(event.target.value)}
-                      disabled={isSubmitting}
-                      required
-                    />
-                  </div>
-                )}
+                  )
+                }}
               </loginForm.Field>
               {errorMessage ? (
                 <div
